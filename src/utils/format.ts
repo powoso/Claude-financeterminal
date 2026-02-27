@@ -45,8 +45,8 @@ export function formatRevenueM(value: number): string {
 }
 
 export function colorForValue(value: number | null): string {
-  if (value === null || value === undefined) return 'text-terminal-muted';
-  if (value > 0) return 'text-terminal-green';
-  if (value < 0) return 'text-terminal-red';
-  return 'text-terminal-text';
+  if (value === null || value === undefined) return 'text-slate-500';
+  if (value > 0) return 'text-emerald-400';
+  if (value < 0) return 'text-rose-400';
+  return 'text-slate-300';
 }

@@ -10,9 +10,9 @@ export function OrderBookPanel() {
   if (!book) {
     return (
       <div className="panel h-full">
-        <div className="panel-header">Order Book</div>
-        <div className="animate-pulse space-y-1">
-          {[...Array(15)].map((_, i) => <div key={i} className="h-3 bg-terminal-border rounded" />)}
+        <div className="panel-header"><div className="panel-dot" /> Order Book</div>
+        <div className="space-y-1.5">
+          {[...Array(15)].map((_, i) => <div key={i} className="skeleton h-3.5 w-full" />)}
         </div>
       </div>
     );
@@ -22,58 +22,84 @@ export function OrderBookPanel() {
     book.bids[book.bids.length - 1]?.total ?? 0,
     book.asks[book.asks.length - 1]?.total ?? 0
   );
+  const midPrice = (book.asks[0]?.price + book.bids[0]?.price) / 2;
 
   return (
-    <div className="panel h-full terminal-glow" id="order-book">
-      <div className="panel-header flex items-center justify-between">
-        <span>
-          <span className="text-terminal-accent">&#9632;</span> Order Book — {activeTicker}
+    <div className="panel h-full" id="order-book">
+      <div className="panel-header justify-between">
+        <span className="flex items-center gap-2">
+          <div className="panel-dot" />
+          Order Book
         </span>
-        <span className="text-[10px] normal-case font-normal">
-          Spread: {formatCurrency(book.spread)} ({book.spreadPercent.toFixed(3)}%)
+        <span className="badge badge-blue font-mono normal-case">
+          Spread: {book.spreadPercent.toFixed(3)}%
         </span>
       </div>
 
-      {/* Headers */}
-      <div className="grid grid-cols-3 text-[10px] text-terminal-muted mb-1 px-1">
+      {/* Column headers */}
+      <div className="grid grid-cols-3 text-[9px] uppercase tracking-wider text-slate-600 font-semibold mb-1.5 px-1">
         <span>Price</span>
         <span className="text-center">Size</span>
         <span className="text-right">Total</span>
       </div>
 
-      {/* Asks (reversed so highest is at top) */}
-      <div className="space-y-px">
-        {[...book.asks].reverse().map((level, i) => (
-          <div key={`ask-${i}`} className="relative grid grid-cols-3 text-[10px] font-mono py-0.5 px-1">
+      {/* Asks (reversed — highest at top) */}
+      <div className="space-y-0">
+        {[...book.asks].reverse().map((level, i) => {
+          const pct = (level.total / maxTotal) * 100;
+          return (
             <div
-              className="absolute inset-0 bg-terminal-red/8"
-              style={{ width: `${(level.total / maxTotal) * 100}%`, right: 0, left: 'auto' }}
-            />
-            <span className="relative text-terminal-red">{formatCurrency(level.price)}</span>
-            <span className="relative text-center text-terminal-text">{formatNumber(level.size)}</span>
-            <span className="relative text-right text-terminal-muted">{formatNumber(level.total)}</span>
-          </div>
-        ))}
+              key={`ask-${i}`}
+              className="relative grid grid-cols-3 text-[10px] font-mono py-[3px] px-1 rounded-sm group hover:bg-rose-500/[0.04] transition-colors"
+            >
+              <div
+                className="absolute inset-y-0 right-0 rounded-sm opacity-60 transition-opacity group-hover:opacity-100"
+                style={{
+                  width: `${pct}%`,
+                  background: 'linear-gradient(270deg, rgba(248, 113, 113, 0.10) 0%, rgba(248, 113, 113, 0.02) 100%)',
+                }}
+              />
+              <span className="relative text-rose-400/90">{formatCurrency(level.price)}</span>
+              <span className="relative text-center text-slate-400">{formatNumber(level.size)}</span>
+              <span className="relative text-right text-slate-500">{formatNumber(level.total)}</span>
+            </div>
+          );
+        })}
       </div>
 
-      {/* Spread indicator */}
-      <div className="my-1 py-1 border-y border-terminal-border text-center text-[10px] text-terminal-accent font-medium">
-        {formatCurrency((book.asks[0]?.price + book.bids[0]?.price) / 2)} mid
+      {/* Spread / Mid indicator */}
+      <div className="my-2 relative">
+        <div className="glow-line" />
+        <div className="flex items-center justify-center -mt-2.5">
+          <div className="bg-surface-1 border border-blue-500/30 rounded-full px-3 py-0.5 flex items-center gap-1.5">
+            <div className="w-1 h-1 rounded-full bg-blue-400 pulse-dot" />
+            <span className="text-[11px] font-bold text-blue-400 font-mono">{formatCurrency(midPrice)}</span>
+          </div>
+        </div>
       </div>
 
       {/* Bids */}
-      <div className="space-y-px">
-        {book.bids.map((level, i) => (
-          <div key={`bid-${i}`} className="relative grid grid-cols-3 text-[10px] font-mono py-0.5 px-1">
+      <div className="space-y-0">
+        {book.bids.map((level, i) => {
+          const pct = (level.total / maxTotal) * 100;
+          return (
             <div
-              className="absolute inset-0 bg-terminal-green/8"
-              style={{ width: `${(level.total / maxTotal) * 100}%` }}
-            />
-            <span className="relative text-terminal-green">{formatCurrency(level.price)}</span>
-            <span className="relative text-center text-terminal-text">{formatNumber(level.size)}</span>
-            <span className="relative text-right text-terminal-muted">{formatNumber(level.total)}</span>
-          </div>
-        ))}
+              key={`bid-${i}`}
+              className="relative grid grid-cols-3 text-[10px] font-mono py-[3px] px-1 rounded-sm group hover:bg-emerald-500/[0.04] transition-colors"
+            >
+              <div
+                className="absolute inset-y-0 left-0 rounded-sm opacity-60 transition-opacity group-hover:opacity-100"
+                style={{
+                  width: `${pct}%`,
+                  background: 'linear-gradient(90deg, rgba(52, 211, 153, 0.10) 0%, rgba(52, 211, 153, 0.02) 100%)',
+                }}
+              />
+              <span className="relative text-emerald-400/90">{formatCurrency(level.price)}</span>
+              <span className="relative text-center text-slate-400">{formatNumber(level.size)}</span>
+              <span className="relative text-right text-slate-500">{formatNumber(level.total)}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

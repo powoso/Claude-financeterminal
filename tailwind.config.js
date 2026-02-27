@@ -3,21 +3,29 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        mono: ['JetBrains Mono', 'Fira Code', 'SF Mono', 'monospace'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
       colors: {
         terminal: {
-          bg: '#0a0e17',
-          panel: '#111827',
+          bg: '#060a10',
+          panel: '#0c1121',
           border: '#1e293b',
           accent: '#3b82f6',
-          green: '#22c55e',
-          red: '#ef4444',
-          yellow: '#eab308',
+          green: '#34d399',
+          red: '#f87171',
+          yellow: '#fbbf24',
+          orange: '#fb923c',
           muted: '#64748b',
           text: '#e2e8f0',
         },
-      },
-      fontFamily: {
-        mono: ['JetBrains Mono', 'Fira Code', 'monospace'],
+        surface: {
+          0: '#060a10',
+          1: '#0c1121',
+          2: '#111827',
+          3: '#1a2332',
+        },
       },
     },
   },

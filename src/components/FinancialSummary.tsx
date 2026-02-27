@@ -1,8 +1,27 @@
 import { useTerminalStore } from '../store';
 import { useApi } from '../hooks/useApi';
-import type { FinancialSummary as FinancialSummaryType } from '../types/financial';
+import type { FinancialSummary as FinancialSummaryType, QuarterlyFinancial } from '../types/financial';
 import { formatRevenueM, formatPercent } from '../utils/format';
 import { clsx } from 'clsx';
+
+type MetricConfig = {
+  label: string;
+  getValue: (q: QuarterlyFinancial) => string;
+  getColor: (q: QuarterlyFinancial) => string;
+  fwd?: (f: FinancialSummaryType['forwardEstimates']) => string;
+};
+
+const metricRows: MetricConfig[] = [
+  { label: 'Revenue', getValue: (q) => formatRevenueM(q.revenue), getColor: () => 'text-slate-200', fwd: (f) => formatRevenueM(f.revenueEstimate) },
+  { label: 'Gross Profit', getValue: (q) => formatRevenueM(q.grossProfit), getColor: () => 'text-slate-300' },
+  { label: 'Op. Income', getValue: (q) => formatRevenueM(q.operatingIncome), getColor: (q) => q.operatingIncome < 0 ? 'text-rose-400' : 'text-slate-300' },
+  { label: 'Net Income', getValue: (q) => formatRevenueM(q.netIncome), getColor: (q) => q.netIncome < 0 ? 'text-rose-400' : 'text-slate-300' },
+  { label: 'EPS', getValue: (q) => `$${q.eps.toFixed(2)}`, getColor: (q) => q.eps < 0 ? 'text-rose-400' : 'text-slate-200', fwd: (f) => `$${f.epsEstimate.toFixed(2)}` },
+  { label: 'Gross Margin', getValue: (q) => formatPercent(q.grossMargin), getColor: () => 'text-slate-300' },
+  { label: 'Op. Margin', getValue: (q) => formatPercent(q.operatingMargin), getColor: (q) => q.operatingMargin < 0 ? 'text-rose-400' : 'text-slate-300' },
+  { label: 'Net Margin', getValue: (q) => formatPercent(q.netMargin), getColor: (q) => q.netMargin < 0 ? 'text-rose-400' : 'text-slate-300' },
+  { label: 'FCF', getValue: (q) => formatRevenueM(q.fcf), getColor: (q) => q.fcf < 0 ? 'text-rose-400' : 'text-emerald-400/80' },
+];
 
 export function FinancialSummary() {
   const { activeTicker } = useTerminalStore();
@@ -11,9 +30,9 @@ export function FinancialSummary() {
   if (!data) {
     return (
       <div className="panel">
-        <div className="panel-header">Financial Summary</div>
-        <div className="animate-pulse space-y-2">
-          {[...Array(6)].map((_, i) => <div key={i} className="h-4 bg-terminal-border rounded w-full" />)}
+        <div className="panel-header"><div className="panel-dot" /> Financial Summary</div>
+        <div className="space-y-2">
+          {[...Array(8)].map((_, i) => <div key={i} className="skeleton h-4 w-full" />)}
         </div>
       </div>
     );
@@ -22,108 +41,63 @@ export function FinancialSummary() {
   const periods = [...data.quarters, data.ttm];
 
   return (
-    <div className="panel terminal-glow overflow-x-auto">
-      <div className="panel-header flex items-center gap-2">
-        <span className="text-terminal-accent">&#9632;</span> Financial Summary — {data.symbol}
+    <div className="panel overflow-x-auto">
+      <div className="panel-header">
+        <div className="panel-dot" />
+        Financial Summary
+        <span className="text-slate-500 font-normal normal-case ml-1">({data.symbol})</span>
       </div>
+
       <table className="w-full text-xs">
         <thead>
-          <tr className="border-b border-terminal-border">
-            <th className="text-left py-2 pr-3 text-terminal-muted font-medium">Metric</th>
+          <tr className="border-b border-white/[0.06]">
+            <th className="text-left py-2.5 pr-3 text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Metric</th>
             {periods.map((q) => (
               <th
                 key={q.period}
                 className={clsx(
-                  'text-right py-2 px-2 font-medium',
-                  q.period === 'TTM' ? 'text-terminal-accent' : 'text-terminal-muted'
+                  'text-right py-2.5 px-2.5 text-[10px] uppercase tracking-wider font-semibold',
+                  q.period === 'TTM' ? 'text-blue-400' : 'text-slate-500'
                 )}
               >
+                {q.period === 'TTM' && <span className="inline-block w-1 h-1 rounded-full bg-blue-400 mr-1 align-middle" />}
                 {q.period}
               </th>
             ))}
-            <th className="text-right py-2 px-2 font-medium text-terminal-yellow">FWD Est.</th>
+            <th className="text-right py-2.5 px-2.5 text-[10px] uppercase tracking-wider font-semibold text-amber-400">
+              Fwd Est.
+            </th>
           </tr>
         </thead>
         <tbody>
-          <tr className="border-b border-terminal-border/50">
-            <td className="py-1.5 pr-3 text-terminal-muted">Revenue</td>
-            {periods.map((q) => (
-              <td key={q.period} className="text-right py-1.5 px-2 font-mono">{formatRevenueM(q.revenue)}</td>
-            ))}
-            <td className="text-right py-1.5 px-2 font-mono text-terminal-yellow">{formatRevenueM(data.forwardEstimates.revenueEstimate)}</td>
-          </tr>
-          <tr className="border-b border-terminal-border/50">
-            <td className="py-1.5 pr-3 text-terminal-muted">Gross Profit</td>
-            {periods.map((q) => (
-              <td key={q.period} className="text-right py-1.5 px-2 font-mono">{formatRevenueM(q.grossProfit)}</td>
-            ))}
-            <td className="text-right py-1.5 px-2 font-mono text-terminal-muted">—</td>
-          </tr>
-          <tr className="border-b border-terminal-border/50">
-            <td className="py-1.5 pr-3 text-terminal-muted">Op. Income</td>
-            {periods.map((q) => (
-              <td key={q.period} className={clsx('text-right py-1.5 px-2 font-mono', q.operatingIncome < 0 && 'text-terminal-red')}>
-                {formatRevenueM(q.operatingIncome)}
+          {metricRows.map((metric) => (
+            <tr key={metric.label} className="border-b border-white/[0.02] hover:bg-white/[0.015] transition-colors">
+              <td className="py-2 pr-3 text-slate-400 font-medium">{metric.label}</td>
+              {periods.map((q) => (
+                <td
+                  key={q.period}
+                  className={clsx(
+                    'text-right py-2 px-2.5 font-mono text-[12px]',
+                    q.period === 'TTM' && 'font-semibold',
+                    metric.getColor(q)
+                  )}
+                >
+                  {metric.getValue(q)}
+                </td>
+              ))}
+              <td className="text-right py-2 px-2.5 font-mono text-[12px] text-amber-400/80 font-medium">
+                {metric.fwd ? metric.fwd(data.forwardEstimates) : '—'}
               </td>
-            ))}
-            <td className="text-right py-1.5 px-2 font-mono text-terminal-muted">—</td>
-          </tr>
-          <tr className="border-b border-terminal-border/50">
-            <td className="py-1.5 pr-3 text-terminal-muted">Net Income</td>
-            {periods.map((q) => (
-              <td key={q.period} className={clsx('text-right py-1.5 px-2 font-mono', q.netIncome < 0 && 'text-terminal-red')}>
-                {formatRevenueM(q.netIncome)}
-              </td>
-            ))}
-            <td className="text-right py-1.5 px-2 font-mono text-terminal-muted">—</td>
-          </tr>
-          <tr className="border-b border-terminal-border/50">
-            <td className="py-1.5 pr-3 text-terminal-muted">EPS</td>
-            {periods.map((q) => (
-              <td key={q.period} className={clsx('text-right py-1.5 px-2 font-mono', q.eps < 0 && 'text-terminal-red')}>
-                ${q.eps.toFixed(2)}
-              </td>
-            ))}
-            <td className="text-right py-1.5 px-2 font-mono text-terminal-yellow">${data.forwardEstimates.epsEstimate.toFixed(2)}</td>
-          </tr>
-          <tr className="border-b border-terminal-border/50">
-            <td className="py-1.5 pr-3 text-terminal-muted">Gross Margin</td>
-            {periods.map((q) => (
-              <td key={q.period} className="text-right py-1.5 px-2 font-mono">{formatPercent(q.grossMargin)}</td>
-            ))}
-            <td className="text-right py-1.5 px-2 font-mono text-terminal-muted">—</td>
-          </tr>
-          <tr className="border-b border-terminal-border/50">
-            <td className="py-1.5 pr-3 text-terminal-muted">Op. Margin</td>
-            {periods.map((q) => (
-              <td key={q.period} className={clsx('text-right py-1.5 px-2 font-mono', q.operatingMargin < 0 && 'text-terminal-red')}>
-                {formatPercent(q.operatingMargin)}
-              </td>
-            ))}
-            <td className="text-right py-1.5 px-2 font-mono text-terminal-muted">—</td>
-          </tr>
-          <tr className="border-b border-terminal-border/50">
-            <td className="py-1.5 pr-3 text-terminal-muted">Net Margin</td>
-            {periods.map((q) => (
-              <td key={q.period} className={clsx('text-right py-1.5 px-2 font-mono', q.netMargin < 0 && 'text-terminal-red')}>
-                {formatPercent(q.netMargin)}
-              </td>
-            ))}
-            <td className="text-right py-1.5 px-2 font-mono text-terminal-muted">—</td>
-          </tr>
-          <tr>
-            <td className="py-1.5 pr-3 text-terminal-muted">FCF</td>
-            {periods.map((q) => (
-              <td key={q.period} className={clsx('text-right py-1.5 px-2 font-mono', q.fcf < 0 && 'text-terminal-red')}>
-                {formatRevenueM(q.fcf)}
-              </td>
-            ))}
-            <td className="text-right py-1.5 px-2 font-mono text-terminal-muted">—</td>
-          </tr>
+            </tr>
+          ))}
         </tbody>
       </table>
-      <div className="mt-2 text-[10px] text-terminal-muted">
-        Forward estimates source: {data.forwardEstimates.source} | Revenue growth: {formatPercent(data.forwardEstimates.revenueGrowth)}
+
+      <div className="mt-3 pt-3 border-t border-white/[0.04] flex items-center justify-between text-[10px] text-slate-500">
+        <span>Source: {data.forwardEstimates.source}</span>
+        <span className="badge badge-blue">
+          Fwd Rev Growth: {formatPercent(data.forwardEstimates.revenueGrowth)}
+        </span>
       </div>
     </div>
   );

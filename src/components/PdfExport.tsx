@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTerminalStore } from '../store';
-import { FileDown } from 'lucide-react';
+import { FileDown, Loader2 } from 'lucide-react';
 
 export function PdfExport() {
   const { activeTicker } = useTerminalStore();
@@ -16,18 +16,18 @@ export function PdfExport() {
       if (!root) return;
 
       const canvas = await html2canvas(root, {
-        backgroundColor: '#0a0e17',
+        backgroundColor: '#060a10',
         scale: 1.5,
         logging: false,
         useCORS: true,
       });
 
-      const imgWidth = 297; // A4 landscape width in mm
+      const imgWidth = 297;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       const pdf = new jsPDF('l', 'mm', 'a4');
 
       let position = 0;
-      const pageHeight = 210; // A4 landscape height
+      const pageHeight = 210;
 
       while (position < imgHeight) {
         if (position > 0) pdf.addPage();
@@ -55,10 +55,14 @@ export function PdfExport() {
     <button
       onClick={handleExport}
       disabled={exporting}
-      className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-terminal-panel border border-terminal-border hover:border-terminal-accent text-terminal-muted hover:text-terminal-accent transition-all disabled:opacity-50"
+      className="group flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white/[0.03] border border-white/[0.06] text-slate-400 hover:bg-blue-500/10 hover:border-blue-500/20 hover:text-blue-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <FileDown className="w-3.5 h-3.5" />
-      {exporting ? 'Exporting...' : 'Export PDF'}
+      {exporting ? (
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+      ) : (
+        <FileDown className="w-3.5 h-3.5 group-hover:text-blue-400 transition-colors" />
+      )}
+      {exporting ? 'Generating...' : 'Export PDF'}
     </button>
   );
 }

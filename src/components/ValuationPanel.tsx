@@ -9,37 +9,37 @@ interface PeerData {
   multiples: ValuationMultiples | null;
 }
 
-const metrics: { key: keyof ValuationMultiples; label: string; format: (v: number | null) => string; higherIsBetter?: boolean }[] = [
-  { key: 'pe', label: 'P/E', format: (v) => formatMultiple(v, 'x') },
-  { key: 'forwardPe', label: 'Fwd P/E', format: (v) => formatMultiple(v, 'x') },
-  { key: 'evEbitda', label: 'EV/EBITDA', format: (v) => formatMultiple(v, 'x') },
-  { key: 'evRevenue', label: 'EV/Revenue', format: (v) => formatMultiple(v, 'x') },
-  { key: 'pFcf', label: 'P/FCF', format: (v) => formatMultiple(v, 'x') },
-  { key: 'peg', label: 'PEG', format: (v) => formatMultiple(v, 'x') },
-  { key: 'debtEquity', label: 'Debt/Equity', format: (v) => formatMultiple(v, 'x') },
-  { key: 'grossMargin', label: 'Gross Margin', format: (v) => formatPercent(v), higherIsBetter: true },
-  { key: 'operatingMargin', label: 'Op. Margin', format: (v) => formatPercent(v), higherIsBetter: true },
-  { key: 'netMargin', label: 'Net Margin', format: (v) => formatPercent(v), higherIsBetter: true },
-  { key: 'fcfYield', label: 'FCF Yield', format: (v) => formatPercent(v), higherIsBetter: true },
-  { key: 'revenueGrowthYoY', label: 'Rev Growth YoY', format: (v) => formatPercent(v), higherIsBetter: true },
-  { key: 'revenueGrowthQoQ', label: 'Rev Growth QoQ', format: (v) => formatPercent(v), higherIsBetter: true },
+const metrics: { key: keyof ValuationMultiples; label: string; format: (v: number | null) => string; higherIsBetter?: boolean; group: string }[] = [
+  { key: 'pe', label: 'P/E', format: (v) => formatMultiple(v, 'x'), group: 'Valuation' },
+  { key: 'forwardPe', label: 'Fwd P/E', format: (v) => formatMultiple(v, 'x'), group: 'Valuation' },
+  { key: 'evEbitda', label: 'EV/EBITDA', format: (v) => formatMultiple(v, 'x'), group: 'Valuation' },
+  { key: 'evRevenue', label: 'EV/Revenue', format: (v) => formatMultiple(v, 'x'), group: 'Valuation' },
+  { key: 'pFcf', label: 'P/FCF', format: (v) => formatMultiple(v, 'x'), group: 'Valuation' },
+  { key: 'peg', label: 'PEG Ratio', format: (v) => formatMultiple(v, 'x'), group: 'Valuation' },
+  { key: 'debtEquity', label: 'Debt/Equity', format: (v) => formatMultiple(v, 'x'), group: 'Leverage' },
+  { key: 'grossMargin', label: 'Gross Margin', format: (v) => formatPercent(v), higherIsBetter: true, group: 'Profitability' },
+  { key: 'operatingMargin', label: 'Op. Margin', format: (v) => formatPercent(v), higherIsBetter: true, group: 'Profitability' },
+  { key: 'netMargin', label: 'Net Margin', format: (v) => formatPercent(v), higherIsBetter: true, group: 'Profitability' },
+  { key: 'fcfYield', label: 'FCF Yield', format: (v) => formatPercent(v), higherIsBetter: true, group: 'Profitability' },
+  { key: 'revenueGrowthYoY', label: 'Rev Growth YoY', format: (v) => formatPercent(v), higherIsBetter: true, group: 'Growth' },
+  { key: 'revenueGrowthQoQ', label: 'Rev Growth QoQ', format: (v) => formatPercent(v), higherIsBetter: true, group: 'Growth' },
 ];
 
-function getCellColor(value: number | null, allValues: (number | null)[], higherIsBetter = false): string {
-  if (value === null) return '';
+function getHeatmapStyle(value: number | null, allValues: (number | null)[], higherIsBetter = false): string {
+  if (value === null) return 'text-slate-600';
   const valid = allValues.filter((v): v is number => v !== null);
-  if (valid.length < 2) return '';
+  if (valid.length < 2) return 'text-slate-300';
   const sorted = [...valid].sort((a, b) => a - b);
   const rank = sorted.indexOf(value);
   const pct = rank / (sorted.length - 1);
-  if (higherIsBetter) {
-    if (pct >= 0.75) return 'bg-terminal-green/10 text-terminal-green';
-    if (pct <= 0.25) return 'bg-terminal-red/10 text-terminal-red';
-  } else {
-    if (pct <= 0.25) return 'bg-terminal-green/10 text-terminal-green';
-    if (pct >= 0.75) return 'bg-terminal-red/10 text-terminal-red';
-  }
-  return '';
+
+  const effectivePct = higherIsBetter ? pct : 1 - pct;
+
+  if (effectivePct >= 0.8) return 'text-emerald-400 bg-emerald-500/[0.08]';
+  if (effectivePct >= 0.6) return 'text-emerald-400/70';
+  if (effectivePct <= 0.2) return 'text-rose-400 bg-rose-500/[0.08]';
+  if (effectivePct <= 0.4) return 'text-rose-400/70';
+  return 'text-slate-300';
 }
 
 export function ValuationPanel() {
@@ -57,24 +57,32 @@ export function ValuationPanel() {
     });
   }
 
+  let lastGroup = '';
+
   return (
-    <div className="panel terminal-glow overflow-x-auto" id="valuation-panel">
-      <div className="panel-header flex items-center gap-2">
-        <span className="text-terminal-accent">&#9632;</span> Valuation Multiples — Peer Comparison
+    <div className="panel overflow-x-auto" id="valuation-panel">
+      <div className="panel-header">
+        <div className="panel-dot" />
+        Valuation Multiples
+        <span className="text-slate-500 font-normal normal-case ml-1">Peer Comparison</span>
       </div>
+
       <table className="w-full text-xs">
         <thead>
-          <tr className="border-b border-terminal-border">
-            <th className="text-left py-2 pr-4 text-terminal-muted font-medium">Metric</th>
+          <tr className="border-b border-white/[0.06]">
+            <th className="text-left py-2.5 pr-4 text-[10px] uppercase tracking-wider text-slate-500 font-semibold w-36">Metric</th>
             {allSymbols.map((s) => (
               <th
                 key={s}
                 className={clsx(
-                  'text-right py-2 px-2 font-medium',
-                  s === activeTicker ? 'text-terminal-accent' : 'text-terminal-muted'
+                  'text-right py-2.5 px-3 text-[10px] uppercase tracking-wider font-semibold',
+                  s === activeTicker ? 'text-blue-400' : 'text-slate-500'
                 )}
               >
-                {s}
+                <div className="flex items-center justify-end gap-1.5">
+                  {s === activeTicker && <div className="w-1 h-1 rounded-full bg-blue-400" />}
+                  {s}
+                </div>
               </th>
             ))}
           </tr>
@@ -85,22 +93,38 @@ export function ValuationPanel() {
               const m = multiplesMap[s];
               return m ? (m[metric.key] as number | null) : null;
             });
+
+            const showGroupHeader = metric.group !== lastGroup;
+            lastGroup = metric.group;
+
             return (
-              <tr key={metric.key} className="border-b border-terminal-border/50 hover:bg-terminal-border/20">
-                <td className="py-1.5 pr-4 text-terminal-muted">{metric.label}</td>
-                {allSymbols.map((s, i) => (
-                  <td
-                    key={s}
-                    className={clsx(
-                      'text-right py-1.5 px-2 font-mono',
-                      s === activeTicker && 'font-semibold',
-                      getCellColor(allValues[i], allValues, metric.higherIsBetter)
-                    )}
-                  >
-                    {metric.format(allValues[i])}
-                  </td>
-                ))}
-              </tr>
+              <>
+                {showGroupHeader && (
+                  <tr key={`group-${metric.group}`}>
+                    <td colSpan={allSymbols.length + 1} className="pt-3 pb-1">
+                      <div className="text-[9px] uppercase tracking-[0.15em] text-blue-400/50 font-semibold">{metric.group}</div>
+                    </td>
+                  </tr>
+                )}
+                <tr
+                  key={metric.key}
+                  className="border-b border-white/[0.02] hover:bg-white/[0.015] transition-colors"
+                >
+                  <td className="py-2 pr-4 text-slate-400 font-medium">{metric.label}</td>
+                  {allSymbols.map((s, i) => (
+                    <td
+                      key={s}
+                      className={clsx(
+                        'text-right py-2 px-3 font-mono text-[12px] rounded-sm transition-colors',
+                        s === activeTicker && 'font-bold',
+                        getHeatmapStyle(allValues[i], allValues, metric.higherIsBetter)
+                      )}
+                    >
+                      {metric.format(allValues[i])}
+                    </td>
+                  ))}
+                </tr>
+              </>
             );
           })}
         </tbody>
